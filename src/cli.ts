@@ -9,7 +9,9 @@ import { createVectraAdapter } from './adapters/vectra.ts'
 import { webSearchTool } from './adapters/tools/web.ts'
 import { readFileTool, writeFileTool, listDirTool } from './adapters/tools/files.ts'
 import { shellTool } from './adapters/tools/shell.ts'
-import { calendarTool, emailTool, openAppTool, notifyTool } from './adapters/tools/system.ts'
+import { calendarTool, createCalendarEventTool, emailTool, openAppTool, notifyTool } from './adapters/tools/system.ts'
+import { createSMTPMailer } from './adapters/smtp.ts'
+import { createSendEmailTool } from './adapters/tools/email.ts'
 import type { Tool } from './ports/tool.ts'
 
 const EXIT_COMMANDS = ['exit', 'quit', 'bye']
@@ -55,6 +57,13 @@ async function main(): Promise<void> {
 
   await checkOllama()
 
+  const mailer = createSMTPMailer({
+    host: config.smtpHost,
+    port: config.smtpPort,
+    user: config.smtpUser,
+    pass: config.smtpPass,
+  })
+
   const isMacOS = platform() === 'darwin'
   const tools: Tool[] = [
     webSearchTool,
@@ -64,7 +73,8 @@ async function main(): Promise<void> {
     shellTool,
     openAppTool,
     notifyTool,
-    ...(isMacOS ? [calendarTool, emailTool] : []),
+    createSendEmailTool(mailer),
+    ...(isMacOS ? [calendarTool, createCalendarEventTool, emailTool] : []),
   ]
 
   const llm = createOllamaAdapter(config.ollamaModel, config.ollamaUrl)

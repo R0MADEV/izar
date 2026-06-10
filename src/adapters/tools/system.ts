@@ -8,17 +8,16 @@ const OPEN_COMMAND_BY_PLATFORM: Record<string, string> = {
   win32: 'start',
 }
 
-function osascript(script: string): string {
+function osascript(script: string, timeout = 30_000): string {
   try {
-    return execSync(`osascript -e '${script.replace(/'/g, '\\\'')}'`, {
+    return execSync(`osascript -e '${script.replace(/'/g, '\\\'')}' `, {
       encoding: 'utf-8',
-      timeout: 30_000,
+      timeout,
     }).trim()
   } catch (err: unknown) {
     return `Error: ${(err as Error).message}`
   }
 }
-
 
 function epochsFromParams(
   days: number,
@@ -36,6 +35,10 @@ function epochsFromParams(
   return [now, now + days * 86400]
 }
 
+function secondsFromNow(isoDate: string): number {
+  return Math.floor((new Date(isoDate).getTime() - Date.now()) / 1000)
+}
+
 export const calendarTool: Tool = {
   name: 'get_calendar_events',
   description:
@@ -43,17 +46,17 @@ export const calendarTool: Tool = {
   parameters: {
     days: {
       type: 'number',
-      description: 'Days ahead from today. Use 1=tomorrow, 7=this week, 30=this month. Ignored if from/to are set.',
+      description: 'Days ahead from today. Use 1=tomorrow, 7=week, 30=month. Ignored if from/to set.',
       required: false,
     },
     from: {
       type: 'string',
-      description: 'Start date in YYYY-MM-DD format (e.g. 2026-06-15). Use with "to" for a specific range.',
+      description: 'Start date YYYY-MM-DD (e.g. 2026-06-15). Use with "to" for a specific range.',
       required: false,
     },
     to: {
       type: 'string',
-      description: 'End date in YYYY-MM-DD format (e.g. 2026-06-30). Use with "from" for a specific range.',
+      description: 'End date YYYY-MM-DD (e.g. 2026-06-30). Use with "from" for a specific range.',
       required: false,
     },
   },
@@ -77,22 +80,17 @@ export const calendarTool: Tool = {
         repeat with cal in every calendar
           set evts to (every event of cal whose start date >= fromDate and start date <= toDate)
           repeat with evt in evts
-            set evtTitle to summary of evt
-            set evtStart to start date of evt as string
-            set evtEnd to end date of evt as string
-            set evtCalendar to name of cal
-            set evtAllDay to allday event of evt
             set evtLocation to location of evt
             set evtNotes to description of evt
             set evtUrl to url of evt
             if evtLocation is missing value then set evtLocation to ""
             if evtNotes is missing value then set evtNotes to ""
             if evtUrl is missing value then set evtUrl to ""
-            set output to output & "EVENTO: " & evtTitle & linefeed
-            set output to output & "  inicio: " & evtStart & linefeed
-            set output to output & "  fin: " & evtEnd & linefeed
-            set output to output & "  calendario: " & evtCalendar & linefeed
-            set output to output & "  todo el día: " & evtAllDay & linefeed
+            set output to output & "EVENTO: " & summary of evt & linefeed
+            set output to output & "  inicio: " & (start date of evt as string) & linefeed
+            set output to output & "  fin: " & (end date of evt as string) & linefeed
+            set output to output & "  calendario: " & name of cal & linefeed
+            set output to output & "  todo el día: " & (allday event of evt) & linefeed
             if evtLocation is not "" then set output to output & "  lugar: " & evtLocation & linefeed
             if evtNotes is not "" then set output to output & "  notas: " & evtNotes & linefeed
             if evtUrl is not "" then set output to output & "  url: " & evtUrl & linefeed
@@ -105,30 +103,108 @@ export const calendarTool: Tool = {
   },
 }
 
+export const createCalendarEventTool: Tool = {
+  name: 'create_calendar_event',
+  description: 'Create a new event in macOS Calendar. macOS only.',
+  parameters: {
+    title: { type: 'string', description: 'Event title' },
+    start: { type: 'string', description: 'Start datetime in ISO format: 2026-06-21T10:00:00' },
+    end: {
+      type: 'string',
+      description: 'End datetime in ISO format. Defaults to 1 hour after start.',
+      required: false,
+    },
+    location: { type: 'string', description: 'Event location or address.', required: false },
+    notes: { type: 'string', description: 'Event notes.', required: false },
+    calendar: {
+      type: 'string',
+      description: 'Calendar name. Defaults to the first personal calendar.',
+      required: false,
+    },
+  },
+  async execute({ title, start, end, location, notes, calendar }) {
+    if (platform() !== 'darwin') {
+      return 'Calendar is only available on macOS.'
+    }
+
+    const startISO = String(start)
+    const endISO = end ? String(end) : new Date(new Date(startISO).getTime() + 3600_000).toISOString()
+    const startOffset = secondsFromNow(startISO)
+    const endOffset = secondsFromNow(endISO)
+
+    const locationLine = location
+      ? `set location of newEvent to "${String(location).replace(/"/g, '\\"')}"`
+      : ''
+    const notesLine = notes
+      ? `set description of newEvent to "${String(notes).replace(/"/g, '\\"')}"`
+      : ''
+    const calendarFilter = calendar
+      ? `whose name is "${String(calendar).replace(/"/g, '\\"')}"`
+      : 'whose writable is true'
+
+    return osascript(`
+      set startDate to (current date) + (${startOffset})
+      set endDate to (current date) + (${endOffset})
+      tell application "Calendar"
+        set targetCalendar to first calendar ${calendarFilter}
+        set newEvent to make new event at end of events of targetCalendar with properties {summary:"${String(title).replace(/"/g, '\\"')}", start date:startDate, end date:endDate}
+        ${locationLine}
+        ${notesLine}
+      end tell
+      return "Event created: ${String(title).replace(/"/g, '\\"')}"`)
+  },
+}
+
 export const emailTool: Tool = {
-  name: 'get_unread_emails',
-  description: 'Get unread emails from Mail inbox. macOS only.',
+  name: 'get_emails',
+  description: 'Get emails from Mail inbox with subject, sender, date and preview. macOS only.',
   parameters: {
     count: { type: 'number', description: 'Max emails to return (default: 10)', required: false },
+    unread_only: {
+      type: 'boolean',
+      description: 'Only return unread emails (default: true)',
+      required: false,
+    },
   },
-  async execute({ count = 10 }) {
+  async execute({ count = 10, unread_only = true }) {
     if (platform() !== 'darwin') {
       return 'Mail is only available on macOS.'
     }
-    return (
-      osascript(`
+
+    const wantUnreadOnly = unread_only === true
+    const scanLimit = Number(count) * (wantUnreadOnly ? 5 : 1)
+    const readCheck = wantUnreadOnly ? 'if read status of msg is false then' : 'if true then'
+
+    const result = osascript(`
       set output to ""
       tell application "Mail"
-        set msgs to (messages of inbox whose read status is false)
-        set cnt to 0
-        repeat with msg in msgs
-          if cnt >= ${count} then exit repeat
-          set output to output & subject of msg & " — " & sender of msg & linefeed
-          set cnt to cnt + 1
+        set inboxCount to count of messages of inbox
+        set scanMax to ${scanLimit}
+        if scanMax > inboxCount then set scanMax to inboxCount
+        set wanted to ${Number(count)}
+        set found to 0
+        repeat with i from 1 to scanMax
+          if found >= wanted then exit repeat
+          set msg to message i of inbox
+          ${readCheck}
+            set msgContent to content of msg
+            if length of msgContent > 200 then set msgContent to text 1 thru 200 of msgContent & "..."
+            set output to output & "DE: " & sender of msg & linefeed
+            set output to output & "ASUNTO: " & subject of msg & linefeed
+            set output to output & "FECHA: " & (date received of msg as string) & linefeed
+            set output to output & "PREVIEW: " & msgContent & linefeed
+            set output to output & linefeed
+            set found to found + 1
+          end if
         end repeat
       end tell
-      return output`) || 'No unread emails.'
-    )
+      return output`, 15_000)
+
+    if (result.startsWith('Error:')) {
+      return `Mail no respondió. Asegúrate de que Mail.app está abierto y de que tu terminal tiene permiso en System Settings > Privacy & Security > Automation > Mail. (${result})`
+    }
+
+    return result || 'No emails found.'
   },
 }
 

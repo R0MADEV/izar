@@ -34,7 +34,7 @@ describe('calendarTool', () => {
 
 describe('emailTool', () => {
   it('has the correct name and optional count parameter', () => {
-    expect(emailTool.name).toBe('get_unread_emails')
+    expect(emailTool.name).toBe('get_emails')
     expect(emailTool.parameters.count.required).toBe(false)
   })
 
@@ -55,7 +55,7 @@ describe('emailTool', () => {
     const result = await emailTool.execute({ count: 5 })
     expect(typeof result).toBe('string')
     expect(result.length).toBeGreaterThan(0)
-  }, 35_000)
+  }, 65_000)
 })
 
 describe('openAppTool', () => {
