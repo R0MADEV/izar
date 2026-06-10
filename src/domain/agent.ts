@@ -13,13 +13,18 @@ Relevant context from memory:
 
 function buildSystemPrompt(pastConversations: string): string {
   const currentDate = new Date().toLocaleString('en-US', {
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
-    hour: '2-digit', minute: '2-digit',
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   })
 
-  return SYSTEM_PROMPT
-    .replace('{currentDate}', currentDate)
-    .replace('{pastConversations}', pastConversations || 'None.')
+  return SYSTEM_PROMPT.replace('{currentDate}', currentDate).replace(
+    '{pastConversations}',
+    pastConversations || 'None.',
+  )
 }
 
 export class Agent {

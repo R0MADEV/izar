@@ -25,15 +25,17 @@ const BANNER = `
 async function checkOllama(): Promise<void> {
   try {
     const res = await fetch(`${config.ollamaUrl}/api/tags`)
-    if (!res.ok) throw new Error()
+    if (!res.ok) {throw new Error()}
 
-    const data = await res.json() as { models?: { name: string }[] }
-    const installedModels = data.models?.map(m => m.name) ?? []
-    const isLLMModelInstalled = installedModels.some(m => m.includes(config.ollamaModel))
-    const isEmbeddingModelInstalled = installedModels.some(m => m.includes('nomic-embed-text'))
+    const data = (await res.json()) as { models?: { name: string }[] }
+    const installedModels = data.models?.map((m) => m.name) ?? []
+    const isLLMModelInstalled = installedModels.some((m) => m.includes(config.ollamaModel))
+    const isEmbeddingModelInstalled = installedModels.some((m) => m.includes('nomic-embed-text'))
 
     if (!isLLMModelInstalled) {
-      clack.log.warn(`Model '${config.ollamaModel}' not found. Run: ollama pull ${config.ollamaModel}`)
+      clack.log.warn(
+        `Model '${config.ollamaModel}' not found. Run: ollama pull ${config.ollamaModel}`,
+      )
     }
     if (!isEmbeddingModelInstalled) {
       clack.log.warn(`Embedding model not found. Run: ollama pull nomic-embed-text`)
@@ -73,9 +75,9 @@ async function main(): Promise<void> {
     const input = await clack.text({ message: chalk.cyan('›') })
     const inputText = String(input).toLowerCase().trim()
 
-    if (clack.isCancel(input)) break
-    if (EXIT_COMMANDS.includes(inputText)) break
-    if (!inputText) continue
+    if (clack.isCancel(input)) {break}
+    if (EXIT_COMMANDS.includes(inputText)) {break}
+    if (!inputText) {continue}
 
     const spinner = clack.spinner()
     spinner.start()

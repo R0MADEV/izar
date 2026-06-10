@@ -7,7 +7,7 @@ import { readFileTool, writeFileTool, listDirTool } from '../../../src/adapters/
 const TEST_DIR = path.join(os.tmpdir(), 'izar-files-test')
 
 afterEach(() => {
-  if (fs.existsSync(TEST_DIR)) fs.rmSync(TEST_DIR, { recursive: true })
+  if (fs.existsSync(TEST_DIR)) {fs.rmSync(TEST_DIR, { recursive: true })}
 })
 
 describe('readFileTool', () => {

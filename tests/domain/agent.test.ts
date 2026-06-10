@@ -54,12 +54,12 @@ describe('Agent', () => {
 
     const secondCallArgs = (mockLLM.generate as ReturnType<typeof mock>).mock.calls[1]
     const conversationMessages = secondCallArgs[1] as { role: string; content: string }[]
-    expect(conversationMessages.some(m => m.content === 'first message')).toBe(true)
+    expect(conversationMessages.some((m) => m.content === 'first message')).toBe(true)
   })
 
   it('trims history when it exceeds 20 messages', async () => {
     const agent = new Agent(mockLLM, mockMemory, noTools)
-    for (let i = 0; i < 12; i++) await agent.chat(`message ${i}`)
+    for (let i = 0; i < 12; i++) {await agent.chat(`message ${i}`)}
 
     const lastCallArgs = (mockLLM.generate as ReturnType<typeof mock>).mock.calls[11]
     const conversationMessages = lastCallArgs[1] as { role: string; content: string }[]

@@ -16,11 +16,11 @@ function mockEmbeddingEndpoint() {
 
 beforeEach(() => {
   mockEmbeddingEndpoint()
-  if (fs.existsSync(TEST_MEMORY_DIR)) fs.rmSync(TEST_MEMORY_DIR, { recursive: true })
+  if (fs.existsSync(TEST_MEMORY_DIR)) {fs.rmSync(TEST_MEMORY_DIR, { recursive: true })}
 })
 
 afterEach(() => {
-  if (fs.existsSync(TEST_MEMORY_DIR)) fs.rmSync(TEST_MEMORY_DIR, { recursive: true })
+  if (fs.existsSync(TEST_MEMORY_DIR)) {fs.rmSync(TEST_MEMORY_DIR, { recursive: true })}
 })
 
 describe('createVectraAdapter', () => {

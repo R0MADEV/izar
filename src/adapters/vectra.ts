@@ -8,7 +8,7 @@ async function fetchOllamaEmbedding(text: string, ollamaBaseUrl: string): Promis
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ model: 'nomic-embed-text', prompt: text }),
   })
-  const responseBody = await response.json() as { embedding: number[] }
+  const responseBody = (await response.json()) as { embedding: number[] }
   return responseBody.embedding
 }
 
@@ -18,7 +18,7 @@ export function createVectraAdapter(memoryStorageDir: string, ollamaBaseUrl: str
 
   return {
     async save(userInput, agentResponse) {
-      if (!await vectorIndex.isIndexCreated()) await vectorIndex.createIndex()
+      if (!(await vectorIndex.isIndexCreated())) {await vectorIndex.createIndex()}
 
       const conversationText = `User: ${userInput}\nIZAR: ${agentResponse}`
       const embeddingVector = await fetchOllamaEmbedding(conversationText, ollamaBaseUrl)
@@ -30,14 +30,12 @@ export function createVectraAdapter(memoryStorageDir: string, ollamaBaseUrl: str
     },
 
     async recall(searchQuery) {
-      if (!await vectorIndex.isIndexCreated()) return ''
+      if (!(await vectorIndex.isIndexCreated())) {return ''}
 
       const queryVector = await fetchOllamaEmbedding(searchQuery, ollamaBaseUrl)
       const nearestResults = await vectorIndex.queryItems(queryVector, searchQuery, 3)
 
-      return nearestResults
-        .map(result => result.item.metadata.text as string)
-        .join('\n---\n')
+      return nearestResults.map((result) => result.item.metadata.text as string).join('\n---\n')
     },
   }
 }

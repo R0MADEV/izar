@@ -11,7 +11,7 @@ export const webSearchTool: Tool = {
     const results = await search(String(query), { safeSearch: 0 })
     return results.results
       .slice(0, 5)
-      .map(r => `${r.title}\n${r.url}\n${r.description}`)
+      .map((r) => `${r.title}\n${r.url}\n${r.description}`)
       .join('\n\n')
   },
 }

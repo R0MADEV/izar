@@ -26,8 +26,9 @@ export const calendarTool: Tool = {
     days: { type: 'number', description: 'Days ahead to look (default: 1)', required: false },
   },
   async execute({ days = 1 }) {
-    if (platform() !== 'darwin') return 'Calendar is only available on macOS.'
-    return osascript(`
+    if (platform() !== 'darwin') {return 'Calendar is only available on macOS.'}
+    return (
+      osascript(`
       set output to ""
       set targetDate to (current date) + (${days} * days)
       tell application "Calendar"
@@ -39,6 +40,7 @@ export const calendarTool: Tool = {
         end repeat
       end tell
       return output`) || 'No events found.'
+    )
   },
 }
 
@@ -49,8 +51,9 @@ export const emailTool: Tool = {
     count: { type: 'number', description: 'Max emails to return (default: 10)', required: false },
   },
   async execute({ count = 10 }) {
-    if (platform() !== 'darwin') return 'Mail is only available on macOS.'
-    return osascript(`
+    if (platform() !== 'darwin') {return 'Mail is only available on macOS.'}
+    return (
+      osascript(`
       set output to ""
       tell application "Mail"
         set msgs to (messages of inbox whose read status is false)
@@ -62,6 +65,7 @@ export const emailTool: Tool = {
         end repeat
       end tell
       return output`) || 'No unread emails.'
+    )
   },
 }
 
