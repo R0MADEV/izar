@@ -4,24 +4,28 @@
   "description": "Personal AI assistant — local, cross-platform",
   "type": "module",
   "bin": {
-    "izar": "./dist/cli.js"
+    "izar": "./dist/cli.js",
+    "izar-voice": "./dist/voice.js"
   },
   "scripts": {
     "dev": "bun run src/cli.ts",
-    "build": "bun build src/cli.ts --outfile dist/cli.js --target node --packages external --banner '#!/usr/bin/env node'",
+    "dev:voice": "bun run src/voice.ts",
+    "build": "bun build src/cli.ts --outfile dist/cli.js --target node --packages external --banner '#!/usr/bin/env node' && bun build src/voice.ts --outfile dist/voice.js --target node --packages external --banner '#!/usr/bin/env node'",
     "start": "node dist/cli.js",
+    "start:voice": "node dist/voice.js",
     "test": "bun test",
     "lint": "eslint src tests",
     "lint:fix": "eslint src tests --fix"
   },
   "files": ["dist"],
   "dependencies": {
-    "ollama-ai-provider": "^1.2.0",
     "@clack/prompts": "^0.9.0",
+    "@huggingface/transformers": "^4.2.0",
     "ai": "^4.3.0",
     "chalk": "^5.3.0",
     "dotenv": "^16.4.5",
     "duck-duck-scrape": "^2.2.5",
+    "ollama-ai-provider": "^1.2.0",
     "vectra": "^0.15.0",
     "zod": "^3.23.0"
   },
