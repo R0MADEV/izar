@@ -12,7 +12,9 @@ describe('calendarTool', () => {
   })
 
   it('returns macOS-only message on non-darwin platforms', async () => {
-    if (process.platform === 'darwin') {return}
+    if (process.platform === 'darwin') {
+      return
+    }
 
     const result = await calendarTool.execute({ days: 1 })
     expect(result).toContain('macOS')
@@ -25,7 +27,9 @@ describe('emailTool', () => {
   })
 
   it('returns macOS-only message on non-darwin platforms', async () => {
-    if (process.platform === 'darwin') {return}
+    if (process.platform === 'darwin') {
+      return
+    }
 
     const result = await emailTool.execute({ count: 5 })
     expect(result).toContain('macOS')

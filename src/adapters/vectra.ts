@@ -18,7 +18,9 @@ export function createVectraAdapter(memoryStorageDir: string, ollamaBaseUrl: str
 
   return {
     async save(userInput, agentResponse) {
-      if (!(await vectorIndex.isIndexCreated())) {await vectorIndex.createIndex()}
+      if (!(await vectorIndex.isIndexCreated())) {
+        await vectorIndex.createIndex()
+      }
 
       const conversationText = `User: ${userInput}\nIZAR: ${agentResponse}`
       const embeddingVector = await fetchOllamaEmbedding(conversationText, ollamaBaseUrl)
@@ -30,7 +32,9 @@ export function createVectraAdapter(memoryStorageDir: string, ollamaBaseUrl: str
     },
 
     async recall(searchQuery) {
-      if (!(await vectorIndex.isIndexCreated())) {return ''}
+      if (!(await vectorIndex.isIndexCreated())) {
+        return ''
+      }
 
       const queryVector = await fetchOllamaEmbedding(searchQuery, ollamaBaseUrl)
       const nearestResults = await vectorIndex.queryItems(queryVector, searchQuery, 3)

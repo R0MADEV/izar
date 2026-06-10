@@ -10,7 +10,7 @@ const OPEN_COMMAND_BY_PLATFORM: Record<string, string> = {
 
 function osascript(script: string): string {
   try {
-    return execSync(`osascript -e '${script.replace(/'/g, "\\'")}'`, {
+    return execSync(`osascript -e '${script.replace(/'/g, '\\\'')}'`, {
       encoding: 'utf-8',
       timeout: 10_000,
     }).trim()
@@ -26,7 +26,9 @@ export const calendarTool: Tool = {
     days: { type: 'number', description: 'Days ahead to look (default: 1)', required: false },
   },
   async execute({ days = 1 }) {
-    if (platform() !== 'darwin') {return 'Calendar is only available on macOS.'}
+    if (platform() !== 'darwin') {
+      return 'Calendar is only available on macOS.'
+    }
     return (
       osascript(`
       set output to ""
@@ -51,7 +53,9 @@ export const emailTool: Tool = {
     count: { type: 'number', description: 'Max emails to return (default: 10)', required: false },
   },
   async execute({ count = 10 }) {
-    if (platform() !== 'darwin') {return 'Mail is only available on macOS.'}
+    if (platform() !== 'darwin') {
+      return 'Mail is only available on macOS.'
+    }
     return (
       osascript(`
       set output to ""

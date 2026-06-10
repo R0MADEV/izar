@@ -14,7 +14,9 @@ export const readFileTool: Tool = {
   },
   async execute({ path: rawPath }) {
     const absolutePath = expandHomePath(String(rawPath))
-    if (!fs.existsSync(absolutePath)) {return `File not found: ${rawPath}`}
+    if (!fs.existsSync(absolutePath)) {
+      return `File not found: ${rawPath}`
+    }
     return fs.readFileSync(absolutePath, 'utf-8')
   },
 }
@@ -42,7 +44,9 @@ export const listDirTool: Tool = {
   },
   async execute({ path: rawPath = '.' }) {
     const absolutePath = expandHomePath(String(rawPath))
-    if (!fs.existsSync(absolutePath)) {return `Directory not found: ${rawPath}`}
+    if (!fs.existsSync(absolutePath)) {
+      return `Directory not found: ${rawPath}`
+    }
 
     return fs
       .readdirSync(absolutePath, { withFileTypes: true })

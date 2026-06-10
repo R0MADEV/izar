@@ -25,7 +25,9 @@ const BANNER = `
 async function checkOllama(): Promise<void> {
   try {
     const res = await fetch(`${config.ollamaUrl}/api/tags`)
-    if (!res.ok) {throw new Error()}
+    if (!res.ok) {
+      throw new Error()
+    }
 
     const data = (await res.json()) as { models?: { name: string }[] }
     const installedModels = data.models?.map((m) => m.name) ?? []
@@ -38,7 +40,7 @@ async function checkOllama(): Promise<void> {
       )
     }
     if (!isEmbeddingModelInstalled) {
-      clack.log.warn(`Embedding model not found. Run: ollama pull nomic-embed-text`)
+      clack.log.warn('Embedding model not found. Run: ollama pull nomic-embed-text')
     }
   } catch {
     clack.log.error(`Cannot connect to Ollama at ${config.ollamaUrl}. Run: ollama serve`)
@@ -75,9 +77,15 @@ async function main(): Promise<void> {
     const input = await clack.text({ message: chalk.cyan('›') })
     const inputText = String(input).toLowerCase().trim()
 
-    if (clack.isCancel(input)) {break}
-    if (EXIT_COMMANDS.includes(inputText)) {break}
-    if (!inputText) {continue}
+    if (clack.isCancel(input)) {
+      break
+    }
+    if (EXIT_COMMANDS.includes(inputText)) {
+      break
+    }
+    if (!inputText) {
+      continue
+    }
 
     const spinner = clack.spinner()
     spinner.start()
