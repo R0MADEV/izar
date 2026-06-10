@@ -1,19 +1,12 @@
 import 'dotenv/config'
 import chalk from 'chalk'
 import fs from 'node:fs'
-import { platform } from 'node:os'
 import { config } from './config.ts'
-import { Agent } from './domain/agent.ts'
-import { createOllamaAdapter } from './adapters/ollama.ts'
-import { createVectraAdapter } from './adapters/vectra.ts'
+import { buildAgent } from './compose.ts'
 import { createWhisperAdapter } from './adapters/whisper.ts'
 import { createNativeTTSAdapter } from './adapters/tts-native.ts'
 import { isSoxInstalled, recordWithSilenceDetection } from './adapters/recorder.ts'
-import { webSearchTool } from './adapters/tools/web.ts'
-import { readFileTool, writeFileTool, listDirTool } from './adapters/tools/files.ts'
-import { shellTool } from './adapters/tools/shell.ts'
-import { calendarTool, emailTool, openAppTool, notifyTool } from './adapters/tools/system.ts'
-import type { Tool } from './ports/tool.ts'
+import { runBootstrap } from './setup.ts'
 
 async function checkDependencies(): Promise<void> {
   const isSoxMissing = !isSoxInstalled()
@@ -27,6 +20,7 @@ async function checkDependencies(): Promise<void> {
 
 async function main(): Promise<void> {
   await checkDependencies()
+  await runBootstrap(config.ollamaUrl, config.ollamaModel)
 
   console.log(chalk.cyan('\n  IZAR — Voice Mode'))
   console.log(chalk.dim('  Loading Whisper model (downloads ~150MB on first run)...\n'))
@@ -34,21 +28,7 @@ async function main(): Promise<void> {
   const [stt] = await Promise.all([createWhisperAdapter()])
   const tts = createNativeTTSAdapter()
 
-  const isMacOS = platform() === 'darwin'
-  const tools: Tool[] = [
-    webSearchTool,
-    readFileTool,
-    writeFileTool,
-    listDirTool,
-    shellTool,
-    openAppTool,
-    notifyTool,
-    ...(isMacOS ? [calendarTool, emailTool] : []),
-  ]
-
-  const llm = createOllamaAdapter(config.ollamaModel, config.ollamaUrl)
-  const memory = createVectraAdapter(config.memoryDir, config.ollamaUrl)
-  const agent = new Agent(llm, memory, tools)
+  const agent = buildAgent()
 
   console.log(chalk.green('  Ready. Speak after the prompt — pausing stops the recording.\n'))
 

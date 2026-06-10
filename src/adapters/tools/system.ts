@@ -155,59 +155,6 @@ export const createCalendarEventTool: Tool = {
   },
 }
 
-export const emailTool: Tool = {
-  name: 'get_emails',
-  description: 'Get emails from Mail inbox with subject, sender, date and preview. macOS only.',
-  parameters: {
-    count: { type: 'number', description: 'Max emails to return (default: 10)', required: false },
-    unread_only: {
-      type: 'boolean',
-      description: 'Only return unread emails (default: true)',
-      required: false,
-    },
-  },
-  async execute({ count = 10, unread_only = true }) {
-    if (platform() !== 'darwin') {
-      return 'Mail is only available on macOS.'
-    }
-
-    const wantUnreadOnly = unread_only === true
-    const scanLimit = Number(count) * (wantUnreadOnly ? 5 : 1)
-    const readCheck = wantUnreadOnly ? 'if read status of msg is false then' : 'if true then'
-
-    const result = osascript(`
-      set output to ""
-      tell application "Mail"
-        set inboxCount to count of messages of inbox
-        set scanMax to ${scanLimit}
-        if scanMax > inboxCount then set scanMax to inboxCount
-        set wanted to ${Number(count)}
-        set found to 0
-        repeat with i from 1 to scanMax
-          if found >= wanted then exit repeat
-          set msg to message i of inbox
-          ${readCheck}
-            set msgContent to content of msg
-            if length of msgContent > 200 then set msgContent to text 1 thru 200 of msgContent & "..."
-            set output to output & "DE: " & sender of msg & linefeed
-            set output to output & "ASUNTO: " & subject of msg & linefeed
-            set output to output & "FECHA: " & (date received of msg as string) & linefeed
-            set output to output & "PREVIEW: " & msgContent & linefeed
-            set output to output & linefeed
-            set found to found + 1
-          end if
-        end repeat
-      end tell
-      return output`, 15_000)
-
-    if (result.startsWith('Error:')) {
-      return `Mail no respondió. Asegúrate de que Mail.app está abierto y de que tu terminal tiene permiso en System Settings > Privacy & Security > Automation > Mail. (${result})`
-    }
-
-    return result || 'No emails found.'
-  },
-}
-
 export const openAppTool: Tool = {
   name: 'open_app',
   description: 'Open an application or file with the default system handler.',

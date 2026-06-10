@@ -1,7 +1,6 @@
 import { describe, it, expect } from 'bun:test'
 import {
   calendarTool,
-  emailTool,
   openAppTool,
   notifyTool,
 } from '../../../src/adapters/tools/system.ts'
@@ -32,31 +31,6 @@ describe('calendarTool', () => {
   }, 15_000)
 })
 
-describe('emailTool', () => {
-  it('has the correct name and optional count parameter', () => {
-    expect(emailTool.name).toBe('get_emails')
-    expect(emailTool.parameters.count.required).toBe(false)
-  })
-
-  it('returns macOS-only message on non-darwin platforms', async () => {
-    if (process.platform === 'darwin') {
-      return
-    }
-
-    const result = await emailTool.execute({ count: 5 })
-    expect(result).toContain('macOS')
-  })
-
-  it('executes via AppleScript on macOS and returns a string', async () => {
-    if (process.platform !== 'darwin') {
-      return
-    }
-
-    const result = await emailTool.execute({ count: 5 })
-    expect(typeof result).toBe('string')
-    expect(result.length).toBeGreaterThan(0)
-  }, 65_000)
-})
 
 describe('openAppTool', () => {
   it('has the correct name and target parameter', () => {

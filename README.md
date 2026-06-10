@@ -22,7 +22,7 @@ IZAR es un agente de terminal conectado a un LLM local (vía [Ollama](https://ol
 - 📁 **Archivos** — leer, escribir y listar directorios.
 - 💻 **Shell** — ejecuta comandos del sistema (cross-platform).
 - 📅 **Calendario** (macOS) — leer eventos, rangos de fechas, festivos suscritos y crear eventos.
-- 📧 **Correo** — leer emails (macOS) y **enviar emails vía SMTP** (cualquier plataforma).
+- 📧 **Correo** — leer (IMAP) y enviar (SMTP) emails en **cualquier plataforma**.
 - 🗣️ **Voz** (opcional) — Whisper local para hablarle y TTS nativo para que responda.
 - 💾 **Memoria persistente** — recuerda conversaciones con embeddings locales (ChromaDB-style).
 - 🧩 **Arquitectura hexagonal** — añadir un nuevo LLM o herramienta es crear un archivo, sin tocar el núcleo.
@@ -30,32 +30,6 @@ IZAR es un agente de terminal conectado a un LLM local (vía [Ollama](https://ol
 ---
 
 ## Requisitos previos
-
-### 1. Ollama
-
-IZAR necesita Ollama corriendo con dos modelos:
-
-```bash
-# Instalar Ollama (macOS / Linux / Windows): https://ollama.com
-ollama serve                      # arranca el servidor
-
-# En otra terminal, descarga los modelos:
-ollama pull llama3.1:8b           # modelo de chat (~4.7 GB) — buen tool calling
-ollama pull nomic-embed-text      # embeddings para la memoria (~274 MB)
-```
-
-> **Nota:** se recomienda `llama3.1:8b` o superior. Modelos más pequeños (3B) fallan al llamar herramientas de forma fiable.
-
-### 2. (Opcional) sox — solo para el modo voz
-
-```bash
-# macOS
-brew install sox
-# Linux
-sudo apt install sox
-```
-
----
 
 ## Instalación
 
@@ -65,12 +39,28 @@ npm install -g izar
 pnpm add -g izar
 ```
 
+Eso es todo. **No necesitas instalar nada más a mano.**
+
+La primera vez que ejecutes `izar`, el asistente se encarga solo de:
+
+1. ✅ Crear el archivo `.env` con valores por defecto.
+2. ✅ Instalar **Ollama** si no lo tienes (automático en macOS/Linux; en Windows abre el instalador).
+3. ✅ Arrancar el servidor de Ollama en segundo plano.
+4. ✅ Descargar los modelos necesarios (`llama3.1:8b` + `nomic-embed-text`) con barra de progreso.
+
+```bash
+izar     # primer arranque: configura todo y abre el chat
+```
+
+> **Nota:** la primera descarga de modelos baja ~5 GB y solo ocurre una vez. Para el modo voz necesitas `sox` (`brew install sox` / `apt install sox`).
+
 O desde el código:
 
 ```bash
 git clone https://github.com/R0MADEV/izar.git
 cd izar
-bun install        # o npm install
+bun install
+bun run dev
 ```
 
 ---
@@ -89,11 +79,14 @@ LLM_PROVIDER=ollama
 OLLAMA_MODEL=llama3.1:8b
 OLLAMA_URL=http://localhost:11434
 
-# --- Envío de correo (SMTP) ---
+# --- Correo: enviar (SMTP) y leer (IMAP) ---
+# El mismo SMTP_USER / SMTP_PASS se reutiliza para leer por IMAP.
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=465
 SMTP_USER=tu-correo@gmail.com
 SMTP_PASS=
+IMAP_HOST=imap.gmail.com
+IMAP_PORT=993
 ```
 
 | Variable | Qué es |
@@ -192,9 +185,13 @@ Habla después del prompt — la grabación se detiene sola al detectar silencio
 | `send_email` | Envía correo vía SMTP | Todas |
 | `open_app` | Abre apps o archivos | Todas |
 | `send_notification` | Notificación del sistema | Todas |
+| `get_emails` | Lee correos vía IMAP | Todas |
 | `get_calendar_events` | Lee eventos y festivos | macOS |
 | `create_calendar_event` | Crea eventos | macOS |
-| `get_emails` | Lee correos del buzón | macOS |
+
+### Compatibilidad por plataforma
+
+La mayoría de funciones corren en **macOS, Linux y Windows**. Las herramientas de **calendario** usan integración nativa de macOS (AppleScript) y por ahora son solo-macOS — en Linux/Windows IZAR simplemente no las registra (no falla, solo no están disponibles). El correo (leer/enviar) sí funciona en los tres sistemas vía IMAP/SMTP.
 
 ---
 

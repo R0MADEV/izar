@@ -11,4 +11,6 @@ export const config = {
   smtpPort: Number(process.env.SMTP_PORT ?? 465),
   smtpUser: process.env.SMTP_USER ?? '',
   smtpPass: process.env.SMTP_PASS ?? '',
+  imapHost: process.env.IMAP_HOST ?? 'imap.gmail.com',
+  imapPort: Number(process.env.IMAP_PORT ?? 993),
 } as const

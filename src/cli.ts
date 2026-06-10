@@ -1,18 +1,9 @@
 import 'dotenv/config'
 import * as clack from '@clack/prompts'
 import chalk from 'chalk'
-import { platform } from 'node:os'
 import { config } from './config.ts'
-import { Agent } from './domain/agent.ts'
-import { createOllamaAdapter } from './adapters/ollama.ts'
-import { createVectraAdapter } from './adapters/vectra.ts'
-import { webSearchTool } from './adapters/tools/web.ts'
-import { readFileTool, writeFileTool, listDirTool } from './adapters/tools/files.ts'
-import { shellTool } from './adapters/tools/shell.ts'
-import { calendarTool, createCalendarEventTool, emailTool, openAppTool, notifyTool } from './adapters/tools/system.ts'
-import { createSMTPMailer } from './adapters/smtp.ts'
-import { createSendEmailTool } from './adapters/tools/email.ts'
-import type { Tool } from './ports/tool.ts'
+import { buildAgent } from './compose.ts'
+import { runBootstrap } from './setup.ts'
 
 const EXIT_COMMANDS = ['exit', 'quit', 'bye']
 
@@ -24,62 +15,14 @@ const BANNER = `
   ██║███████╗██║  ██║██║  ██║
   ╚═╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝`
 
-async function checkOllama(): Promise<void> {
-  try {
-    const res = await fetch(`${config.ollamaUrl}/api/tags`)
-    if (!res.ok) {
-      throw new Error()
-    }
-
-    const data = (await res.json()) as { models?: { name: string }[] }
-    const installedModels = data.models?.map((m) => m.name) ?? []
-    const isLLMModelInstalled = installedModels.some((m) => m.includes(config.ollamaModel))
-    const isEmbeddingModelInstalled = installedModels.some((m) => m.includes('nomic-embed-text'))
-
-    if (!isLLMModelInstalled) {
-      clack.log.warn(
-        `Model '${config.ollamaModel}' not found. Run: ollama pull ${config.ollamaModel}`,
-      )
-    }
-    if (!isEmbeddingModelInstalled) {
-      clack.log.warn('Embedding model not found. Run: ollama pull nomic-embed-text')
-    }
-  } catch {
-    clack.log.error(`Cannot connect to Ollama at ${config.ollamaUrl}. Run: ollama serve`)
-    process.exit(1)
-  }
-}
-
 async function main(): Promise<void> {
   console.clear()
   console.log(chalk.cyan(BANNER))
   console.log(chalk.dim('  Personal AI — Fase 1\n'))
 
-  await checkOllama()
+  await runBootstrap(config.ollamaUrl, config.ollamaModel)
 
-  const mailer = createSMTPMailer({
-    host: config.smtpHost,
-    port: config.smtpPort,
-    user: config.smtpUser,
-    pass: config.smtpPass,
-  })
-
-  const isMacOS = platform() === 'darwin'
-  const tools: Tool[] = [
-    webSearchTool,
-    readFileTool,
-    writeFileTool,
-    listDirTool,
-    shellTool,
-    openAppTool,
-    notifyTool,
-    createSendEmailTool(mailer),
-    ...(isMacOS ? [calendarTool, createCalendarEventTool, emailTool] : []),
-  ]
-
-  const llm = createOllamaAdapter(config.ollamaModel, config.ollamaUrl)
-  const memory = createVectraAdapter(config.memoryDir, config.ollamaUrl)
-  const agent = new Agent(llm, memory, tools)
+  const agent = buildAgent()
 
   clack.log.success('IZAR online.')
 
