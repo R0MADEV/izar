@@ -14,8 +14,15 @@ function buildZodSchema(
       paramDefinition.type === 'string'
         ? z.string()
         : paramDefinition.type === 'number'
-          ? z.number()
-          : z.boolean()
+          ? z.preprocess((val) => {
+            if (typeof val === 'number') {
+              return val
+            }
+            const cleaned = String(val).replace(/[^0-9.-]/g, '')
+            const parsed = Number(cleaned)
+            return isNaN(parsed) ? undefined : parsed
+          }, z.number())
+          : z.coerce.boolean()
 
     const annotatedType = baseType.describe(paramDefinition.description)
     zodShape[paramName] =
@@ -50,6 +57,7 @@ export function createOllamaAdapter(modelName: string, ollamaBaseUrl: string): L
         tools: toAISDKToolsMap(availableTools),
         maxSteps: 6,
       })
+
       return text
     },
   }

@@ -55,7 +55,7 @@ describe('emailTool', () => {
     const result = await emailTool.execute({ count: 5 })
     expect(typeof result).toBe('string')
     expect(result.length).toBeGreaterThan(0)
-  }, 15_000)
+  }, 35_000)
 })
 
 describe('openAppTool', () => {

@@ -1,12 +1,25 @@
+import os from 'node:os'
 import type { LLMPort, Message } from '../ports/llm.ts'
 import type { MemoryPort } from '../ports/memory.ts'
 import type { Tool } from '../ports/tool.ts'
 
 const MAX_HISTORY_MESSAGES = 20
 
-const SYSTEM_PROMPT = `You are IZAR — a personal AI assistant running locally.
-Be direct and action-oriented. Execute tasks, don't just describe them.
+const SYSTEM_PROMPT = `You are IZAR, a personal AI assistant running locally on macOS.
+Be direct and action-oriented. Always use tools to get real data — never guess or hallucinate.
+
+Critical tool usage rules:
+- Web searches: ALWAYS use the web_search tool. NEVER use run_shell with curl, wget or URLs.
+- File listing: ALWAYS use the list_dir tool. User home directory is {homeDir}.
+- Current time/date: use run_shell with the 'date' command.
+- Calendar events, holidays, festivos: ALWAYS use get_calendar_events tool — it reads ALL calendars including subscribed holiday calendars. For "this week" use days:7, for "this month" use days:30, for "this year" use days:365. NEVER guess or invent holidays.
+- When reporting dates: if the event is tomorrow, say "mañana". If today, say "hoy". Use relative terms, not "el próximo X".
+- If a tool returns results, report them directly. Do NOT preface with "Lo siento" or "no pude encontrar".
+- If a tool returns "No events found." or "No results found." — say exactly that, nothing else.
+- If a tool call fails, say what failed. Do NOT invent results.
+
 Today: {currentDate}
+User home: {homeDir}
 
 Relevant context from memory:
 {pastConversations}`
@@ -21,10 +34,11 @@ function buildSystemPrompt(pastConversations: string): string {
     minute: '2-digit',
   })
 
-  return SYSTEM_PROMPT.replace('{currentDate}', currentDate).replace(
-    '{pastConversations}',
-    pastConversations || 'None.',
-  )
+  const homeDir = os.homedir()
+
+  return SYSTEM_PROMPT.replace('{currentDate}', currentDate)
+    .replace('{pastConversations}', pastConversations || 'None.')
+    .replace(/{homeDir}/g, homeDir)
 }
 
 export class Agent {
