@@ -9,18 +9,20 @@ const theme = getTheme('jarvis')
 describe('ArcReactor', () => {
   it('renders the reactor core', () => {
     const { lastFrame, unmount } = render(
-      createElement(ArcReactor, { active: false, theme }),
+      createElement(ArcReactor, { active: false, theme, width: 23 }),
     )
     const frame = lastFrame() ?? ''
-    // core pulse char is one of ◉ ◎ ⊙
-    expect(/[◉◎⊙]/.test(frame)).toBe(true)
+    // core pulse char is one of ◉ ◎ ⊙ ◍
+    expect(/[◉◎⊙◍]/.test(frame)).toBe(true)
     unmount()
   })
 
-  it('renders neuron nodes around the core', () => {
-    const { lastFrame, unmount } = render(createElement(ArcReactor, { active: false, theme }))
+  it('renders ring particles around the core', () => {
+    const { lastFrame, unmount } = render(
+      createElement(ArcReactor, { active: false, theme, width: 23 }),
+    )
     const frame = lastFrame() ?? ''
-    expect(/[✶✦∘•·]/.test(frame)).toBe(true)
+    expect(/[·∘∙]/.test(frame)).toBe(true)
     unmount()
   })
 })

@@ -33,11 +33,24 @@ export function WeatherWidget({ source, theme }: { source: WeatherPort; theme: T
   }
 
   return (
-    <Box>
-      <Text color={theme.accent} bold>
-        {weather.temperature} {weather.location}
-      </Text>
-      <Text color={theme.dim}> · {weather.condition}</Text>
+    <Box flexDirection="column" alignItems="center">
+      <Box>
+        <Text color={theme.accent} bold>
+          {weather.temperature} {weather.location}
+        </Text>
+        <Text color={theme.dim}> · {weather.condition}</Text>
+      </Box>
+      {weather.forecast.length > 0 && (
+        <Box>
+          {weather.forecast.map((day) => (
+            <Box key={day.label} marginRight={1}>
+              <Text color={theme.dim}>{day.label} </Text>
+              <Text color={theme.primary}>{day.max}</Text>
+              <Text color={theme.dim}>/{day.min}</Text>
+            </Box>
+          ))}
+        </Box>
+      )}
     </Box>
   )
 }

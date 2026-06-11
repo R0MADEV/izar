@@ -20,7 +20,7 @@ const fakeTelemetry = {
   }),
 }
 const fakeWeather = {
-  read: async () => ({ location: 'Bilbao', temperature: '+13°C', condition: 'Cloudy', icon: '☁' }),
+  read: async () => ({ location: 'Bilbao', temperature: '+13°C', condition: 'Cloudy', icon: '☁', forecast: [] }),
 }
 
 describe('App (Ink HUD)', () => {

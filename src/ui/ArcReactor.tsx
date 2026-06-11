@@ -84,8 +84,11 @@ function angularDistance(a: number, b: number): number {
   return Math.min(diff, Math.PI * 2 - diff)
 }
 
+const BOOT_FRAMES = 22
+
 export function ArcReactor({ active, theme, width = 23 }: { active: boolean; theme: Theme; width?: number }) {
   const [frame, setFrame] = useState(0)
+  const [boot, setBoot] = useState(0)
 
   useEffect(() => {
     const interval = setInterval(
@@ -94,6 +97,15 @@ export function ArcReactor({ active, theme, width = 23 }: { active: boolean; the
     )
     return () => clearInterval(interval)
   }, [active])
+
+  // Power-up: rings assemble inner→outer with a full sweep over ~1.4s.
+  useEffect(() => {
+    if (boot >= BOOT_FRAMES) {
+      return
+    }
+    const timer = setInterval(() => setBoot((b) => Math.min(BOOT_FRAMES, b + 1)), 60)
+    return () => clearInterval(timer)
+  }, [boot])
 
   const cols = Math.max(15, width % 2 === 0 ? width - 1 : width)
   const rows = Math.max(7, Math.round(cols * 0.5) | 1)
@@ -106,10 +118,25 @@ export function ArcReactor({ active, theme, width = 23 }: { active: boolean; the
     Array.from({ length: cols }, () => ({ char: ' ', color: theme.dim, bold: false })),
   )
 
-  for (const ring of RING_SPECS) {
+  const booting = boot < BOOT_FRAMES
+  const bootProgress = boot / BOOT_FRAMES
+  const bootSweep = bootProgress * Math.PI * 2 * 2 // two full sweeps during boot
+
+  RING_SPECS.forEach((ring, ringIndex) => {
+    // During boot, reveal rings from inner (last) to outer (first) progressively.
+    const revealAt = ((RING_SPECS.length - 1 - ringIndex) / RING_SPECS.length) * 0.85
+    if (booting && bootProgress < revealAt) {
+      return
+    }
+
     const rx = baseRx * ring.rxFactor
     const ry = baseRy * ring.ryFactor
-    const litAngle = active ? (frame * ring.speed * ring.dir) % (Math.PI * 2) : null
+    const litAngle = booting
+      ? bootSweep % (Math.PI * 2)
+      : active
+        ? (frame * ring.speed * ring.dir) % (Math.PI * 2)
+        : null
+    const litArc = booting ? Math.PI / 2 : ring.arc
 
     for (const { y, x } of ellipseCells(cx, cy, rx, ry)) {
       if (y < 0 || y >= rows || x < 0 || x >= cols) {
@@ -117,14 +144,14 @@ export function ArcReactor({ active, theme, width = 23 }: { active: boolean; the
       }
       const angle = Math.atan2((y - cy) / (ry || 1), (x - cx) / (rx || 1))
       const normAngle = angle < 0 ? angle + Math.PI * 2 : angle
-      const isLit = litAngle !== null && angularDistance(normAngle, litAngle) < ring.arc
+      const isLit = litAngle !== null && angularDistance(normAngle, litAngle) < litArc
       grid[y][x] = {
         char: isLit ? '●' : ring.glyph,
         color: isLit ? theme.accent : theme.primary,
         bold: isLit,
       }
     }
-  }
+  })
 
   // Glowing core — a bright cluster, bigger than a single char.
   const coreChar = CORE_PULSE[frame % CORE_PULSE.length]
