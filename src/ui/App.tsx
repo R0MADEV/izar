@@ -5,8 +5,16 @@ import BigText from 'ink-big-text'
 import Spinner from 'ink-spinner'
 import TextInput from 'ink-text-input'
 import { getTheme, themeNames, type Theme } from './themes.ts'
+import { ArcReactor } from './ArcReactor.tsx'
+import { Telemetry } from './Telemetry.tsx'
+import { ActivityGraph } from './ActivityGraph.tsx'
+import { Clock } from './Clock.tsx'
+import { WeatherWidget } from './WeatherWidget.tsx'
+import { useTerminalSize } from './useTerminalSize.ts'
 import { parseChatInput, isVoiceExit } from '../domain/chat-input.ts'
 import type { Agent } from '../domain/agent.ts'
+import type { TelemetryPort } from '../ports/telemetry.ts'
+import type { WeatherPort } from '../ports/weather.ts'
 
 export type Status = 'idle' | 'thinking' | 'loading' | 'listening' | 'transcribing'
 
@@ -18,6 +26,8 @@ type AppProps = {
   agent: Agent
   captureVoice: VoiceCapture
   speak: (text: string) => Promise<void>
+  telemetry: TelemetryPort
+  weather: WeatherPort
   initialTheme: string
 }
 
@@ -33,25 +43,57 @@ function StatusBadge({ status, theme }: { status: Status; theme: Theme }) {
   const color = status === 'idle' ? theme.success : theme.accent
   return (
     <Box>
-      {status !== 'idle' && (
-        <Text color={color}>
-          <Spinner type="dots" />{' '}
-        </Text>
-      )}
-      <Text color={color}>{STATUS_LABEL[status]}</Text>
+      <Text color={color}>{status === 'idle' ? '◉' : <Spinner type="dots" />}</Text>
+      <Text color={color}>{' ' + STATUS_LABEL[status]}</Text>
     </Box>
   )
 }
 
-function Header({ status, theme }: { status: Status; theme: Theme }) {
+function Sidebar({
+  status,
+  theme,
+  telemetry,
+  weather,
+  width,
+}: {
+  status: Status
+  theme: Theme
+  telemetry: TelemetryPort
+  weather: WeatherPort
+  width: number
+}) {
   return (
-    <Box flexDirection="column" marginBottom={1}>
-      <Gradient colors={[...theme.gradient]}>
-        <BigText text="IZAR" font="tiny" />
-      </Gradient>
-      <Box justifyContent="space-between">
-        <Text color={theme.dim}>asistente personal · local · {theme.name}</Text>
-        <StatusBadge status={status} theme={theme} />
+    <Box
+      flexDirection="column"
+      justifyContent="space-between"
+      paddingX={1}
+      width={width}
+      flexShrink={0}
+      marginRight={2}
+    >
+      <Box flexDirection="column" alignItems="center">
+        <Gradient colors={[...theme.gradient]}>
+          <BigText text="IZAR" font="block" />
+        </Gradient>
+        <Clock theme={theme} />
+        <WeatherWidget source={weather} theme={theme} />
+      </Box>
+
+      <Box flexDirection="column" alignItems="center">
+        <ArcReactor active={status !== 'idle'} theme={theme} width={width - 2} />
+        <Box marginTop={1}>
+          <StatusBadge status={status} theme={theme} />
+        </Box>
+      </Box>
+
+      <Box flexDirection="column" alignItems="center">
+        <Telemetry source={telemetry} theme={theme} />
+        <Box marginTop={1}>
+          <ActivityGraph source={telemetry} theme={theme} />
+        </Box>
+        <Box marginTop={1}>
+          <Text color={theme.dim}>tema · {theme.name}</Text>
+        </Box>
       </Box>
     </Box>
   )
@@ -60,27 +102,30 @@ function Header({ status, theme }: { status: Status; theme: Theme }) {
 function MessageView({ message, theme }: { message: Message; theme: Theme }) {
   if (message.role === 'system') {
     return (
-      <Box marginBottom={1}>
-        <Text color={theme.dim}>{message.content}</Text>
+      <Box marginBottom={1} paddingLeft={1}>
+        <Text color={theme.dim}>⋯ {message.content}</Text>
       </Box>
     )
   }
 
   const isUser = message.role === 'user'
-  const label = isUser ? 'TÚ' : 'IZAR'
+  const label = isUser ? '▎ TÚ' : '▎ IZAR ◉'
   const color = isUser ? theme.user : theme.primary
   return (
     <Box flexDirection="column" marginBottom={1}>
       <Text color={color} bold>
         {label}
       </Text>
-      <Text color={theme.text}>{message.content}</Text>
+      <Box paddingLeft={2}>
+        <Text color={theme.text}>{message.content}</Text>
+      </Box>
     </Box>
   )
 }
 
-export function App({ agent, captureVoice, speak, initialTheme }: AppProps) {
+export function App({ agent, captureVoice, speak, telemetry, weather, initialTheme }: AppProps) {
   const { exit } = useApp()
+  const { columns, rows } = useTerminalSize()
   const [theme, setTheme] = useState<Theme>(getTheme(initialTheme))
   const [messages, setMessages] = useState<Message[]>([])
   const [status, setStatus] = useState<Status>('idle')
@@ -90,22 +135,43 @@ export function App({ agent, captureVoice, speak, initialTheme }: AppProps) {
     setMessages((prev) => [...prev, message])
   }, [])
 
+  // Replaces the last message (always the streaming IZAR message) with new content.
+  const setLastMessage = useCallback((content: string) => {
+    setMessages((prev) => {
+      const next = [...prev]
+      next[next.length - 1] = { role: 'izar', content }
+      return next
+    })
+  }, [])
+
   const sendToAgent = useCallback(
     async (text: string): Promise<string | null> => {
-      addMessage({ role: 'user', content: text })
+      // User message + empty IZAR message added together; IZAR is always last.
+      setMessages((prev) => [
+        ...prev,
+        { role: 'user', content: text },
+        { role: 'izar', content: '' },
+      ])
       setStatus('thinking')
+
+      let streamed = ''
+      const appendToken = (delta: string) => {
+        streamed += delta
+        setLastMessage(streamed)
+      }
+
       try {
-        const response = await agent.chat(text)
-        addMessage({ role: 'izar', content: response })
+        const response = await agent.chat(text, appendToken)
+        setLastMessage(response)
         return response
       } catch (err: unknown) {
-        addMessage({ role: 'izar', content: `Error: ${(err as Error).message}` })
+        setLastMessage(`Error: ${(err as Error).message}`)
         return null
       } finally {
         setStatus('idle')
       }
     },
-    [agent, addMessage],
+    [agent, setLastMessage],
   )
 
   // Voice mode stays active: listen → respond → listen again, until the user
@@ -187,25 +253,45 @@ export function App({ agent, captureVoice, speak, initialTheme }: AppProps) {
   const isBusy = status !== 'idle'
 
   return (
-    <Box flexDirection="column" paddingX={1}>
-      <Header status={status} theme={theme} />
+    <Box flexDirection="row" width={columns} height={rows - 1} paddingX={1} paddingTop={1}>
+      <Sidebar
+        status={status}
+        theme={theme}
+        telemetry={telemetry}
+        weather={weather}
+        width={Math.max(24, Math.floor(columns * 0.33))}
+      />
 
-      {messages.map((message, index) => (
-        <MessageView key={index} message={message} theme={theme} />
-      ))}
+      <Box flexDirection="column" flexGrow={1}>
+        <Box flexDirection="column" flexGrow={1} justifyContent="flex-end">
+          {messages.length === 0 ? (
+            <Box>
+              <Text color={theme.dim}>
+                Hola. Soy IZAR. Escribe tu pregunta o di /voz para hablar.
+              </Text>
+            </Box>
+          ) : (
+            messages.map((message, index) => (
+              <MessageView key={index} message={message} theme={theme} />
+            ))
+          )}
+        </Box>
 
-      <Box marginTop={1}>
-        <Text color={theme.primary}>{'› '}</Text>
-        {isBusy ? (
-          <Text color={theme.dim}>…</Text>
-        ) : (
-          <TextInput
-            value={input}
-            onChange={setInput}
-            onSubmit={handleSubmit}
-            placeholder="escribe, o /voz · /theme · /clear · exit"
-          />
-        )}
+        <Box>
+          <Text color={isBusy ? theme.accent : theme.primary} bold>
+            {isBusy ? '◌ ' : '❯ '}
+          </Text>
+          {isBusy ? (
+            <Text color={theme.dim}>{STATUS_LABEL[status]}</Text>
+          ) : (
+            <TextInput
+              value={input}
+              onChange={setInput}
+              onSubmit={handleSubmit}
+              placeholder="escribe  ·  /voz hablar  ·  /theme  ·  /clear  ·  exit"
+            />
+          )}
+        </Box>
       </Box>
     </Box>
   )

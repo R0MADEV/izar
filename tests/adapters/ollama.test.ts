@@ -24,6 +24,16 @@ describe('createOllamaAdapter', () => {
     expect(result).toBe('mocked llm response')
   })
 
+  it('replays the response as word chunks when onToken is given', async () => {
+    const llm = createOllamaAdapter('llama3.1:8b', 'http://localhost:11434')
+    const received: string[] = []
+    const result = await llm.generate('system', [], [], (delta) => received.push(delta))
+
+    expect(received.length).toBeGreaterThan(1)
+    expect(received.join('')).toBe('mocked llm response')
+    expect(result).toBe('mocked llm response')
+  })
+
   it('passes system prompt and messages to generateText', async () => {
     const llm = createOllamaAdapter('llama3.1:8b', 'http://localhost:11434')
     await llm.generate('you are izar', [{ role: 'user', content: 'hello' }], [])

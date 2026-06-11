@@ -1,5 +1,5 @@
 import os from 'node:os'
-import type { LLMPort, Message } from '../ports/llm.ts'
+import type { LLMPort, Message, OnToken } from '../ports/llm.ts'
 import type { MemoryPort } from '../ports/memory.ts'
 import type { Tool } from '../ports/tool.ts'
 
@@ -52,7 +52,7 @@ export class Agent {
     private readonly tools: Tool[],
   ) {}
 
-  async chat(userMessage: string): Promise<string> {
+  async chat(userMessage: string, onToken?: OnToken): Promise<string> {
     const pastConversations = await this.memory.recall(userMessage)
     const systemPrompt = buildSystemPrompt(pastConversations)
 
@@ -61,7 +61,12 @@ export class Agent {
       { role: 'user', content: userMessage },
     ]
 
-    const agentResponse = await this.llm.generate(systemPrompt, messagesWithNewInput, this.tools)
+    const agentResponse = await this.llm.generate(
+      systemPrompt,
+      messagesWithNewInput,
+      this.tools,
+      onToken,
+    )
 
     this.conversationHistory.push(
       { role: 'user', content: userMessage },

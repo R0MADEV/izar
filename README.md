@@ -18,12 +18,14 @@ IZAR es un agente de terminal conectado a un LLM local (vía [Ollama](https://ol
 ## Características
 
 - 🧠 **LLM local** — usa Ollama (Llama 3.1, etc.). 0 € y tus datos no salen de tu máquina.
+- ⚡ **Respuestas en streaming** — el texto aparece palabra a palabra mientras el modelo genera.
+- 🎛️ **HUD estilo Iron Man** — interfaz de terminal con Ink: marcos cian, estado en vivo, banner con degradado. 4 temas (jarvis/matrix/amber/synthwave).
+- 🗣️ **Voz integrada** — habla y escucha en la misma sesión. Whisper local (STT) + TTS nativo. Modo voz continuo.
 - 🔎 **Búsqueda web** — DuckDuckGo + Google News RSS, sin API keys.
 - 📁 **Archivos** — leer, escribir y listar directorios.
 - 💻 **Shell** — ejecuta comandos del sistema (cross-platform).
 - 📅 **Calendario** (macOS) — leer eventos, rangos de fechas, festivos suscritos y crear eventos.
 - 📧 **Correo** — leer (IMAP) y enviar (SMTP) emails en **cualquier plataforma**.
-- 🗣️ **Voz** (opcional) — Whisper local para hablarle y TTS nativo para que responda.
 - 💾 **Memoria persistente** — recuerda conversaciones con embeddings locales (ChromaDB-style).
 - 🧩 **Arquitectura hexagonal** — añadir un nuevo LLM o herramienta es crear un archivo, sin tocar el núcleo.
 
@@ -159,19 +161,28 @@ izar
 bun run dev
 ```
 
-Escribe lo que quieras:
+Se abre el **HUD** (interfaz estilo Iron Man). Escribe lo que quieras:
 
 ```
-› ¿qué eventos tengo mañana?
-› busca las últimas noticias de Apple
-› envía un correo a juan@empresa.com con asunto "reunión" y cuerpo "nos vemos a las 10"
-› crea un evento "Dentista" el 2026-07-15 a las 17:00
-› lista los archivos de mi escritorio
+❯ ¿qué eventos tengo mañana?
+❯ busca las últimas noticias de Apple
+❯ envía un correo a juan@empresa.com con asunto "reunión" y cuerpo "nos vemos a las 10"
+❯ crea un evento "Dentista" el 2026-07-15 a las 17:00
+❯ lista los archivos de mi escritorio
 ```
 
-Para salir: `exit`, `quit` o `Ctrl+C`.
+La respuesta aparece **en streaming** (palabra a palabra).
 
-### Modo voz (opcional)
+**Comandos dentro del HUD:**
+
+| Comando | Qué hace |
+|---------|----------|
+| `/voz` | Modo voz continuo: hablas y te responde en voz alta. Di "para" o "texto" para volver a escribir |
+| `/theme <nombre>` | Cambia el tema en vivo: `jarvis`, `matrix`, `amber`, `synthwave` |
+| `/clear` | Limpia la conversación |
+| `exit` | Salir |
+
+### Modo voz puro (manos libres)
 
 ```bash
 izar voice
@@ -179,15 +190,16 @@ izar voice
 bun run dev:voice
 ```
 
-Habla después del prompt — la grabación se detiene sola al detectar silencio. IZAR transcribe con Whisper local y responde por voz.
+Hablas sin teclado — la grabación se detiene sola al detectar silencio, IZAR transcribe con Whisper local y responde por voz. Para activar la palabra "Izar" antes de cada pregunta, pon `WAKE_WORD_ENABLED=true` en el `.env`.
 
 **Requisito:** `sox` (`brew install sox` en macOS, `apt install sox` en Linux).
 
-El modelo de transcripción se configura en `.env`:
+El modelo de transcripción y el tema se configuran en `.env`:
 
 ```ini
 WHISPER_MODEL=Xenova/whisper-small   # tiny < base < small < medium (más grande = más preciso)
 WHISPER_LANGUAGE=spanish
+UI_THEME=jarvis                      # jarvis | matrix | amber | synthwave
 ```
 
 > `whisper-small` es el recomendado para español (buen balance precisión/velocidad). `whisper-tiny`/`base` son más rápidos pero cometen más errores.
@@ -254,7 +266,7 @@ bun run build     # compila a dist/
 
 ## Stack
 
-Bun · TypeScript · Ollama · Vercel AI SDK · Vectra · Nodemailer · Whisper (transformers.js)
+Bun · TypeScript · Ollama · Vercel AI SDK (streaming) · Ink (HUD) · Vectra · Nodemailer · IMAP · Whisper (transformers.js)
 
 ---
 

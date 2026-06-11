@@ -1,8 +1,20 @@
 import { createOllama } from 'ollama-ai-provider'
 import { generateText, tool as createAITool } from 'ai'
 import { z } from 'zod'
-import type { LLMPort, Message } from '../ports/llm.ts'
+import type { LLMPort, Message, OnToken } from '../ports/llm.ts'
 import type { Tool } from '../ports/tool.ts'
+
+const STREAM_DELAY_MS = 18
+
+// Token-level streaming with tools is broken in ollama-ai-provider, so we
+// generate the full response (tools work) and replay it word by word.
+async function replayAsStream(text: string, onToken: OnToken): Promise<void> {
+  const chunks = text.match(/\S+\s*/g) ?? []
+  for (const chunk of chunks) {
+    onToken(chunk)
+    await new Promise((resolve) => setTimeout(resolve, STREAM_DELAY_MS))
+  }
+}
 
 function buildZodSchema(
   toolParameters: Tool['parameters'],
@@ -49,14 +61,20 @@ export function createOllamaAdapter(modelName: string, ollamaBaseUrl: string): L
   const ollamaProvider = createOllama({ baseURL: `${ollamaBaseUrl}/api` })
 
   return {
-    async generate(systemPrompt, conversationHistory, availableTools) {
-      const { text } = await generateText({
+    async generate(systemPrompt, conversationHistory, availableTools, onToken) {
+      const sharedOptions = {
         model: ollamaProvider(modelName),
         system: systemPrompt,
         messages: conversationHistory as Message[],
         tools: toAISDKToolsMap(availableTools),
         maxSteps: 6,
-      })
+      }
+
+      const { text } = await generateText(sharedOptions)
+
+      if (onToken) {
+        await replayAsStream(text, onToken)
+      }
 
       return text
     },

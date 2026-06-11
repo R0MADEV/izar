@@ -5,6 +5,8 @@ export type Message = {
   content: string
 }
 
+export type OnToken = (delta: string) => void
+
 export type LLMPort = {
-  generate(system: string, messages: Message[], tools: Tool[]): Promise<string>
+  generate(system: string, messages: Message[], tools: Tool[], onToken?: OnToken): Promise<string>
 }
