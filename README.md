@@ -173,6 +173,17 @@ bun run dev:voice
 
 Habla después del prompt — la grabación se detiene sola al detectar silencio. IZAR transcribe con Whisper local y responde por voz.
 
+**Requisito:** `sox` (`brew install sox` en macOS, `apt install sox` en Linux).
+
+El modelo de transcripción se configura en `.env`:
+
+```ini
+WHISPER_MODEL=Xenova/whisper-small   # tiny < base < small < medium (más grande = más preciso)
+WHISPER_LANGUAGE=spanish
+```
+
+> `whisper-small` es el recomendado para español (buen balance precisión/velocidad). `whisper-tiny`/`base` son más rápidos pero cometen más errores.
+
 ---
 
 ## Herramientas disponibles

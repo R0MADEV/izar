@@ -19,6 +19,12 @@ SMTP_USER=
 SMTP_PASS=
 IMAP_HOST=imap.gmail.com
 IMAP_PORT=993
+
+# Voz (opcional). Modelos: Xenova/whisper-tiny | whisper-base | whisper-small | whisper-medium
+WHISPER_MODEL=Xenova/whisper-small
+WHISPER_LANGUAGE=spanish
+# true = hay que decir "Izar" antes de cada pregunta. false = solo hablas (más fiable).
+WAKE_WORD_ENABLED=false
 `
 
 function commandExists(command: string): boolean {

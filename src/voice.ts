@@ -6,6 +6,7 @@ import { buildAgent } from './compose.ts'
 import { createWhisperAdapter } from './adapters/whisper.ts'
 import { createNativeTTSAdapter } from './adapters/tts-native.ts'
 import { isSoxInstalled, recordWithSilenceDetection } from './adapters/recorder.ts'
+import { extractWakeWordCommand } from './domain/wake-word.ts'
 import { runBootstrap } from './setup.ts'
 
 async function checkDependencies(): Promise<void> {
@@ -25,15 +26,23 @@ async function main(): Promise<void> {
   console.log(chalk.cyan('\n  IZAR — Voice Mode'))
   console.log(chalk.dim('  Loading Whisper model (downloads ~150MB on first run)...\n'))
 
-  const [stt] = await Promise.all([createWhisperAdapter()])
+  const [stt] = await Promise.all([
+    createWhisperAdapter(config.whisperLanguage, config.whisperModel),
+  ])
   const tts = createNativeTTSAdapter()
 
   const agent = buildAgent()
 
-  console.log(chalk.green('  Ready. Speak after the prompt — pausing stops the recording.\n'))
+  const usesWakeWord = config.wakeWordEnabled
+  const prompt = usesWakeWord
+    ? '  Listo. Di "Izar" seguido de tu pregunta. Ej: "Izar, qué tengo mañana".\n'
+    : '  Listo. Habla tu pregunta y haz una pausa al terminar.\n'
+  const listeningLabel = usesWakeWord ? '  ● Escuchando "Izar"...\r' : '  ● Escuchando...\r'
+
+  console.log(chalk.green(prompt))
 
   while (true) {
-    console.log(chalk.cyan('  ● Listening...'))
+    process.stdout.write(chalk.dim(listeningLabel))
 
     let audioFile: string
 
@@ -52,18 +61,30 @@ async function main(): Promise<void> {
       continue
     }
 
-    const isExitCommand = ['exit', 'quit', 'bye', 'goodbye'].includes(
-      userText.toLowerCase().trim(),
+    const command = usesWakeWord ? extractWakeWordCommand(userText) : userText.trim()
+    const isNotAddressingIzar = command === null
+    if (isNotAddressingIzar) {
+      continue
+    }
+
+    const isExitCommand = ['exit', 'quit', 'bye', 'goodbye', 'adiós', 'adios'].includes(
+      command.toLowerCase().trim(),
     )
     if (isExitCommand) {
       break
     }
 
-    console.log(chalk.white(`\n  You: ${userText}`))
+    const isOnlyWakeWord = !command.trim()
+    if (isOnlyWakeWord) {
+      await tts.speak('Dime')
+      continue
+    }
+
+    console.log(chalk.white(`\n  You: ${command}`))
     process.stdout.write(chalk.dim('  Thinking...'))
 
     try {
-      const response = await agent.chat(userText)
+      const response = await agent.chat(command)
       process.stdout.write('\r' + ' '.repeat(14) + '\r')
       console.log(chalk.cyan(`  IZAR: ${response}\n`))
       await tts.speak(response)

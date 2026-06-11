@@ -13,4 +13,7 @@ export const config = {
   smtpPass: process.env.SMTP_PASS ?? '',
   imapHost: process.env.IMAP_HOST ?? 'imap.gmail.com',
   imapPort: Number(process.env.IMAP_PORT ?? 993),
+  whisperModel: process.env.WHISPER_MODEL ?? 'Xenova/whisper-small',
+  whisperLanguage: process.env.WHISPER_LANGUAGE ?? 'spanish',
+  wakeWordEnabled: process.env.WAKE_WORD_ENABLED === 'true',
 } as const

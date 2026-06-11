@@ -17,19 +17,23 @@ export function isSoxInstalled(): boolean {
   }
 }
 
+export function buildRecordArgs(outputFile: string): string[] {
+  return [
+    '-r', RECORDING_SAMPLE_RATE,
+    '-c', '1',
+    '-b', '16',
+    outputFile,
+    'silence', '1', '0.1', SILENCE_THRESHOLD,
+    '1', SILENCE_DURATION, SILENCE_THRESHOLD,
+    'trim', '0', MAX_RECORDING_SECONDS,
+  ]
+}
+
 export function recordWithSilenceDetection(): Promise<string> {
   const outputFile = path.join(tmpdir(), `izar-voice-${Date.now()}.wav`)
 
   return new Promise((resolve, reject) => {
-    const recProcess = spawn('rec', [
-      '-r', RECORDING_SAMPLE_RATE,
-      '-c', '1',
-      '-b', '16',
-      outputFile,
-      'silence', '1', '0.1', SILENCE_THRESHOLD,
-      '1', SILENCE_DURATION, SILENCE_THRESHOLD,
-      'trim', '0', MAX_RECORDING_SECONDS,
-    ])
+    const recProcess = spawn('rec', buildRecordArgs(outputFile))
 
     recProcess.on('close', (exitCode) => {
       const isNormalExit = exitCode === 0 || exitCode === null

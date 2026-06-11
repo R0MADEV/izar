@@ -1,22 +1,33 @@
 import { describe, it, expect } from 'bun:test'
-import { isSoxInstalled } from '../../src/adapters/recorder.ts'
+import { isSoxInstalled, buildRecordArgs } from '../../src/adapters/recorder.ts'
 
 describe('isSoxInstalled', () => {
   it('returns a boolean', () => {
     const result = isSoxInstalled()
     expect(typeof result).toBe('boolean')
   })
+})
 
-  it('returns true on macOS when sox is installed', () => {
-    if (process.platform !== 'darwin') {
-      return
-    }
+describe('buildRecordArgs', () => {
+  const args = buildRecordArgs('/tmp/out.wav')
 
-    // sox is a prerequisite for voice mode — this test validates the environment
-    const isInstalled = isSoxInstalled()
-    if (!isInstalled) {
-      console.warn('sox not installed — voice mode unavailable. Run: brew install sox')
-    }
-    expect(typeof isInstalled).toBe('boolean')
+  it('records at 16kHz mono 16-bit (whisper-friendly format)', () => {
+    expect(args).toContain('-r')
+    expect(args).toContain('16000')
+    expect(args).toContain('-c')
+    expect(args).toContain('1')
+  })
+
+  it('includes the output file path', () => {
+    expect(args).toContain('/tmp/out.wav')
+  })
+
+  it('enables silence detection to auto-stop recording', () => {
+    expect(args).toContain('silence')
+  })
+
+  it('caps the recording length with a trim', () => {
+    const trimIndex = args.indexOf('trim')
+    expect(trimIndex).toBeGreaterThan(-1)
   })
 })
