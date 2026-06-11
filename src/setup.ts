@@ -25,6 +25,9 @@ WHISPER_MODEL=Xenova/whisper-small
 WHISPER_LANGUAGE=spanish
 # true = hay que decir "Izar" antes de cada pregunta. false = solo hablas (más fiable).
 WAKE_WORD_ENABLED=false
+
+# Tema de la interfaz: jarvis | matrix | amber | synthwave
+UI_THEME=matrix
 `
 
 function commandExists(command: string): boolean {

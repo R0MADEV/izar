@@ -16,4 +16,5 @@ export const config = {
   whisperModel: process.env.WHISPER_MODEL ?? 'Xenova/whisper-small',
   whisperLanguage: process.env.WHISPER_LANGUAGE ?? 'spanish',
   wakeWordEnabled: process.env.WAKE_WORD_ENABLED === 'true',
+  uiTheme: process.env.UI_THEME ?? 'jarvis',
 } as const

@@ -19,7 +19,7 @@ async function checkDependencies(): Promise<void> {
   }
 }
 
-async function main(): Promise<void> {
+export async function runVoice(): Promise<void> {
   await checkDependencies()
   await runBootstrap(config.ollamaUrl, config.ollamaModel)
 
@@ -96,5 +96,3 @@ async function main(): Promise<void> {
 
   console.log(chalk.dim('\n  Shutting down.'))
 }
-
-main()

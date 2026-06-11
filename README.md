@@ -143,6 +143,14 @@ Para que IZAR pueda enviar correos necesitas un **app-password** (contraseña de
 
 ## Uso
 
+IZAR es un único comando con subcomandos:
+
+```bash
+izar            # modo texto (chat)
+izar voice      # modo voz
+izar --help     # ayuda
+```
+
 ### Modo texto
 
 ```bash
@@ -166,7 +174,7 @@ Para salir: `exit`, `quit` o `Ctrl+C`.
 ### Modo voz (opcional)
 
 ```bash
-izar-voice
+izar voice
 # o en desarrollo:
 bun run dev:voice
 ```
